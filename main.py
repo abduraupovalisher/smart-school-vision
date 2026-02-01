@@ -1,7 +1,12 @@
 import customtkinter as ctk
+import models  
+
 from views.dashboard import DashboardView
 from views.live_feed import LiveFeedView
 from views.records import RecordsView
+from database import engine, Base
+
+Base.metadata.create_all(bind=engine)
 
 class MainApp(ctk.CTk):
     def __init__(self):
