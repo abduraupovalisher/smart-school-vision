@@ -1,7 +1,6 @@
 customtkinter
 Pillow
 pandas
-numpy
 openpyxl
 matplotlib
 opencv-python
