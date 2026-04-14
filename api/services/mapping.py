@@ -1,19 +1,20 @@
-from database import SessionLocal
+import logging
+
+from sqlalchemy.orm import Session
+
 from models import Camera
 
+logger = logging.getLogger(__name__)
 
-def get_entrance_by_ip(ip_address: str) -> str:
+
+def get_entrance_by_ip(ip_address: str, db: Session) -> str:
+    """Return the human-readable entrance name for a camera IP address.
+
+    Falls back to 'Unknown Entrance' when the IP is not registered.
+    The caller is responsible for providing and closing the session.
     """
-    Looks up the human-readable entrance name (e.g., 'Main Gate')
-    based on the camera's IP address by querying the 'cameras' table.
-    """
-    db = SessionLocal()
-    try:
-        # Query the Camera table for the IP address
-        camera = db.query(Camera).filter(Camera.ip_address == ip_address).first()
-        if camera:
-            return camera.entrance_name
-        return "Unknown Entrance"
-    finally:
-        # Always close the session to prevent leaks
-        db.close()
+    camera = db.query(Camera).filter(Camera.ip_address == ip_address).first()
+    if camera:
+        return camera.entrance_name
+    logger.debug("No camera registered for IP %s", ip_address)
+    return "Unknown Entrance"

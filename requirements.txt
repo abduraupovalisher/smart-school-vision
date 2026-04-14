@@ -1,3 +1,4 @@
+# Desktop GUI
 customtkinter
 Pillow
 pandas
@@ -5,14 +6,23 @@ openpyxl
 matplotlib
 opencv-python
 
+# Packaging
 pyinstaller
+
+# Database
 sqlalchemy
 
+# HTTP
 requests>=2.28.0
 urllib3>=1.26.0
 
+# API server
 fastapi
 uvicorn
 python-multipart
 cachetools
 xmltodict
+
+# Testing
+pytest>=7.0
+httpx

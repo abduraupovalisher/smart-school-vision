@@ -1,49 +1,55 @@
-from fastapi import APIRouter, Request, BackgroundTasks, Response, UploadFile
-from api.services.event_processor import process_isapi_event
+import uuid
 import logging
+
+from fastapi import APIRouter, BackgroundTasks, Request, Response, UploadFile
+
+from api.services.event_processor import process_isapi_event
 
 logger = logging.getLogger(__name__)
 
-# Router for Hikvision ISAPI events
-router = APIRouter()
+router = APIRouter(tags=["ISAPI"])
+
+_XML_MAGIC = b"<?xml"
+_JPEG_MAGIC = b"\xff\xd8"
 
 
 @router.post("/webhook")
-async def isapi_webhook(request: Request, background_tasks: BackgroundTasks):
+async def isapi_webhook(request: Request, background_tasks: BackgroundTasks) -> Response:
     """
-    Main webhook to receive Hikvision event alerts.
-    The camera sends multipart/form-data containing:
-    1. XML data with event details (student ID, event type)
-    2. JPEG image snapshot of the face
+    Receive Hikvision ISAPI face-recognition events.
+
+    The camera sends multipart/form-data with:
+    - An XML part describing the event (student ID, event type)
+    - An optional JPEG snapshot of the detected face
+
+    Returns 200 immediately; all processing runs in a background task to
+    prevent camera timeout.
     """
+    request_id = uuid.uuid4().hex[:8]
     client_ip = request.client.host if request.client else "unknown"
-    xml_data = None
-    image_data = None
+    xml_data: bytes | None = None
+    image_data: bytes | None = None
 
     try:
-        # Parse multipart form data
         form = await request.form()
-        for field_name, form_data in form.multi_items():
-            if isinstance(form_data, UploadFile):
-                content_type = form_data.content_type or ""
-                content = await form_data.read()
-
-                # Detect XML part
-                if "xml" in content_type or content.startswith(b"<?xml"):
+        for _field, part in form.multi_items():
+            if isinstance(part, UploadFile):
+                content = await part.read()
+                ct = part.content_type or ""
+                if "xml" in ct or content.startswith(_XML_MAGIC):
                     xml_data = content
-                # Detect Image part
-                elif "image" in content_type:
+                elif "image" in ct or content.startswith(_JPEG_MAGIC):
                     image_data = content
-            elif isinstance(form_data, str):
-                # Fallback for plain string XML
-                if form_data.startswith("<?xml"):
-                    xml_data = form_data.encode("utf-8")
-    except Exception as e:
-        logger.error(f"Error parsing ISAPI form data: {e}")
+            elif isinstance(part, str) and part.startswith("<?xml"):
+                xml_data = part.encode()
+    except Exception:
+        logger.exception("[%s] Failed to parse multipart form from %s", request_id, client_ip)
 
-    # If we got the event XML, process it in the background to respond to the camera immediately
     if xml_data:
-        background_tasks.add_task(process_isapi_event, client_ip, xml_data, image_data)
+        background_tasks.add_task(
+            process_isapi_event, client_ip, xml_data, image_data, request_id
+        )
+    else:
+        logger.warning("[%s] No XML in request from %s", request_id, client_ip)
 
-    # Return 200 OK as fast as possible to prevent camera timeout
     return Response(status_code=200)

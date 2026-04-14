@@ -1,21 +1,18 @@
 from cachetools import TTLCache
 
-# Global TTL cache to prevent multiple event logs for the same student
-# maxsize: number of items to store, ttl: time to live in seconds (30s)
-_event_cache = TTLCache(maxsize=10000, ttl=30)
+from api.config import settings
+
+_event_cache: TTLCache = TTLCache(maxsize=10_000, ttl=settings.dedup_ttl_seconds)
 
 
 def is_duplicate_event(student_id: str) -> bool:
-    """
-    Checks if the student_id has already been processed recently.
-
-    If student_id is in the cache:
-        Return True (Duplicate)
-    Else:
-        Add it to the cache and return False (New)
-    """
+    """Return True if this student was already processed within the TTL window."""
     if student_id in _event_cache:
         return True
-
     _event_cache[student_id] = True
     return False
+
+
+def clear_cache() -> None:
+    """Remove all entries from the cache (intended for testing)."""
+    _event_cache.clear()

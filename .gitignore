@@ -2,6 +2,9 @@
 .kilo/
 kilo.json
 
+#claude
+CLAUDE.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -29,3 +32,14 @@ build/
 *.spec
 .vscode/
 .idea/
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Test & coverage artefacts
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
