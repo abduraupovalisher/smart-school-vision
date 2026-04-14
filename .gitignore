@@ -1,0 +1,31 @@
+# Kilo configurations
+.kilo/
+kilo.json
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+.env/
+.venv/
+
+# GUI / OS files
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite3
+
+# Project-specific
+data/snapshots/
+*.log
+dist/
+build/
+*.spec
+.vscode/
+.idea/

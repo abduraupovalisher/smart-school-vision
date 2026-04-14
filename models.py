@@ -3,6 +3,7 @@ from sqlalchemy.dialects.sqlite import BLOB
 from datetime import datetime
 from database import Base
 
+
 class Student(Base):
     __tablename__ = "students"
     id = Column(Integer, primary_key=True, index=True)
@@ -10,12 +11,14 @@ class Student(Base):
     class_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
 
+
 class FaceEmbedding(Base):
     __tablename__ = "face_embeddings"
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     vector = Column(BLOB, nullable=False)  # embedding bytes
     created_at = Column(DateTime, default=datetime.utcnow)
+
 
 class UnknownFace(Base):
     __tablename__ = "unknown_faces"
@@ -27,6 +30,7 @@ class UnknownFace(Base):
     seen_count = Column(Integer, default=1)
     status = Column(String, default="new")  # new/reviewed/linked/ignored
     linked_student_id = Column(Integer, ForeignKey("students.id"), nullable=True)
+
 
 class Event(Base):
     __tablename__ = "events"
@@ -42,3 +46,11 @@ class Event(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     is_unknown = Column(Boolean, default=False)
+
+
+class Camera(Base):
+    __tablename__ = "cameras"
+    id = Column(Integer, primary_key=True, index=True)
+    ip_address = Column(String, unique=True, index=True, nullable=False)
+    entrance_name = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
