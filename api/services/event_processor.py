@@ -6,6 +6,7 @@ import xmltodict
 
 from api.config import settings
 from api.exceptions import XMLParseError
+from api.services import diagnostics
 from api.services.cache import is_duplicate_event
 from api.services.mapping import get_entrance_by_ip
 from database import SessionLocal
@@ -67,12 +68,21 @@ def process_isapi_event(
         parsed = _parse_xml(xml_data)
     except XMLParseError as exc:
         logger.error("%s%s", tag, exc)
+        diagnostics.record({
+            "request_id": request_id, "client_ip": client_ip,
+            "stage": "xml_parse", "ok": False, "error": str(exc),
+        })
         return
 
     student_id = _extract_student_id(parsed) or "unknown"
 
     if student_id != "unknown" and is_duplicate_event(student_id):
         logger.info("%sDuplicate event for student %s — skipped", tag, student_id)
+        diagnostics.record({
+            "request_id": request_id, "client_ip": client_ip,
+            "stage": "dedup", "ok": True, "student_id": student_id,
+            "skipped": True,
+        })
         return
 
     snapshot_path = _save_snapshot(image_data) if image_data else None
@@ -92,8 +102,19 @@ def process_isapi_event(
         db.add(event)
         db.commit()
         logger.info("%sSaved event student=%s entrance=%s", tag, student_id, entrance)
-    except Exception:
+        diagnostics.record({
+            "request_id": request_id, "client_ip": client_ip,
+            "stage": "persisted", "ok": True,
+            "student_id": student_id, "entrance": entrance,
+            "snapshot_path": snapshot_path,
+            "is_unknown": student_id == "unknown",
+        })
+    except Exception as exc:
         db.rollback()
         logger.exception("%sDatabase error while saving event", tag)
+        diagnostics.record({
+            "request_id": request_id, "client_ip": client_ip,
+            "stage": "persisted", "ok": False, "error": repr(exc),
+        })
     finally:
         db.close()

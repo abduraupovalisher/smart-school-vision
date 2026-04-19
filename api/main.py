@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
 from api.logging_config import setup_logging
+from api.routes.diagnostics import router as diagnostics_router
 from api.routes.isapi import router as isapi_router
 from database import engine
 from models import Base
@@ -28,6 +29,7 @@ app.add_middleware(
 )
 
 app.include_router(isapi_router, prefix="/api")
+app.include_router(diagnostics_router, prefix="/api")
 
 
 @app.get("/health")
